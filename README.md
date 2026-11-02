@@ -5,6 +5,7 @@ Starter template for a Fluor function in Python using `componentize-py`.
 ## Requirements
 
 - Python 3.10+
+- `just`: `cargo install just`
 - `componentize-py`: `pip install componentize-py`
 - Optional inspection: `cargo install --locked wasm-tools`
 
