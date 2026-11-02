@@ -1,4 +1,5 @@
 import json
+from urllib.parse import unquote_plus
 
 from componentize_py_types import Err
 from wit_world import exports
@@ -64,7 +65,11 @@ def update_item(request, request_id):
     item_id = query_param(request.query, "id")
     if item_id is None:
         raise Err(Error(ErrorCode.BAD_REQUEST, "query parameter id is required"))
-    if not request.body.lstrip().startswith("{"):
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        raise Err(Error(ErrorCode.BAD_REQUEST, "body must be a JSON object")) from None
+    if not isinstance(body, dict):
         raise Err(Error(ErrorCode.BAD_REQUEST, "body must be a JSON object"))
     return respond(
         200,
@@ -76,7 +81,7 @@ def update_item(request, request_id):
             "path": request.path,
             "query": request.query,
             "requestId": request_id,
-            "updated": {"id": item_id, "body": json.loads(request.body)},
+            "updated": {"id": item_id, "body": body},
         },
     )
 
@@ -104,7 +109,7 @@ def respond(status, request_id, payload):
     headers = [Header(name="content-type", value="application/json")]
     if request_id is not None:
         headers.append(Header(name="x-request-id", value=request_id))
-    return Response(status=status, headers=headers, body=json.dumps(payload))
+    return Response(status=status, headers=headers, body=json.dumps(payload, ensure_ascii=False))
 
 
 def header_value(headers, name):
@@ -119,8 +124,8 @@ def query_param(query, key):
         return None
     for part in query.split("&"):
         name, separator, value = part.partition("=")
-        if separator and name == key:
-            return value
+        if separator and unquote_plus(name) == key:
+            return unquote_plus(value)
     return None
 
 
